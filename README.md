@@ -1,0 +1,2 @@
+# Jetson_movement_necognition
+Jetsonを使って動体検知
