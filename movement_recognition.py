@@ -8,7 +8,7 @@ model = hub.load('https://tfhub.dev/google/movenet/singlepose/lightning/4')
 movenet = model.signatures['serving_default']
 
 # Webカメラの映像を取得
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 if not cap.isOpened():
     print("Error: Could not open video stream")
@@ -43,17 +43,16 @@ while True:
     # フレームをキャプチャ
     ret, frame = cap.read()
     if not ret:
-        print("Error: Could not read frame")
         break
 
-    # フレームをリサイズして処理速度を向上させる
+    # 画像の前処理
     input_image = cv2.resize(frame, (192, 192))
-    input_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2RGB)
+    input_image = input_image.astype(np.float32)
     input_image = np.expand_dims(input_image, axis=0)
-    input_image = tf.convert_to_tensor(input_image, dtype=tf.int32)
+    input_image = input_image / 255.0
 
-    # 動作認識モデルを使用してポーズ推定
-    outputs = movenet(input_image)
+    # ポーズ推定
+    outputs = movenet(tf.constant(input_image))
     keypoints = outputs['output_0'].numpy()[0, 0, :, :]
 
     # キーポイントを描画
@@ -65,6 +64,10 @@ while True:
     # ポーズを検知して表示
     pose = detect_pose(keypoints)
     cv2.putText(frame, pose, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
+    # ガッツポーズを検出したら画像を保存
+    if pose == "Guts Pose":
+        cv2.imwrite('guts_pose.jpg', frame)
 
     cv2.imshow('Pose Detection', frame)
 
